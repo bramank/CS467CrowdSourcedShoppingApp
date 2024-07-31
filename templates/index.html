@@ -1,0 +1,202 @@
+<!doctype html>
+<html>
+<head>
+  <title>CS467 - Crowd-Sourced Shopping App</title>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <h1>CS467 - Crowd-Sourced Shopping App</h1>
+    <h1>CRUD Operations Test Template</h1>
+    
+    <div class="container">
+        <div class="column">
+            <!-- USER CRUD -->
+            <h2>Create User</h2>
+            <form id="createUserForm">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required><br>
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required><br>
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required><br>
+                <label for="reputation">Reputation:</label>
+                <input type="number" id="reputation" name="reputation" required><br>
+                <label for="role">Role:</label>
+                <input type="text" id="role" name="role" required><br>
+                <input type="submit" value="Create User">
+            </form>
+            <div id="createUserResult"></div>
+
+            <h2>Read User</h2>
+            <form id="readUserForm">
+                <label for="readUserId">User ID:</label>
+                <input type="text" id="readUserId" name="readUserId" required><br>
+                <input type="submit" value="Read User">
+            </form>
+            <div id="readUserResult"></div>
+
+            <h2>Update User</h2>
+            <form id="updateUserForm">
+                <label for="updateUserId">User ID:</label>
+                <input type="text" id="updateUserId" name="updateUserId" required><br>
+                <label for="updateUsername">Username:</label>
+                <input type="text" id="updateUsername" name="updateUsername"><br>
+                <label for="updateEmail">Email:</label>
+                <input type="email" id="updateEmail" name="updateEmail"><br>
+                <label for="updatePassword">Password:</label>
+                <input type="password" id="updatePassword" name="updatePassword"><br>
+                <label for="updateReputation">Reputation:</label>
+                <input type="number" id="updateReputation" name="updateReputation"><br>
+                <label for="updateRole">Role:</label>
+                <input type="text" id="updateRole" name="updateRole"><br>
+                <input type="submit" value="Update User">
+            </form>
+            <div id="updateUserResult"></div>
+
+            <h2>Delete User</h2>
+            <form id="deleteUserForm">
+                <label for="deleteUserId">User ID:</label>
+                <input type="text" id="deleteUserId" name="deleteUserId" required><br>
+                <input type="submit" value="Delete User">
+            </form>
+            <div id="deleteUserResult"></div>
+        </div>
+        
+        <div class="column">
+            <!-- ITEM CRUD -->
+            <h2>Create Item</h2>
+            <form id="createItemForm">
+                <label for="itemName">Name:</label>
+                <input type="text" id="itemName" name="name" required><br>
+                <label for="itemTags">Tags (comma-separated):</label>
+                <input type="text" id="itemTags" name="tags"><br>
+                <label for="itemBrand">Brand:</label>
+                <input type="text" id="itemBrand" name="brand"><br>
+                <input type="submit" value="Create Item">
+            </form>
+            <div id="createItemResult"></div>
+
+            <h2>Read Item</h2>
+            <form id="readItemForm">
+                <label for="readItemId">Item ID:</label>
+                <input type="text" id="readItemId" name="readItemId" required><br>
+                <input type="submit" value="Read Item">
+            </form>
+            <div id="readItemResult"></div>
+
+            <h2>Update Item</h2>
+            <form id="updateItemForm">
+                <label for="updateItemId">Item ID:</label>
+                <input type="text" id="updateItemId" name="updateItemId" required><br>
+                <label for="updateItemName">Name:</label>
+                <input type="text" id="updateItemName" name="updateItemName"><br>
+                <label for="updateItemTags">Tags (comma-separated):</label>
+                <input type="text" id="updateItemTags" name="updateItemTags"><br>
+                <label for="updateItemBrand">Brand:</label>
+                <input type="text" id="updateItemBrand" name="updateItemBrand"><br>
+                <input type="submit" value="Update Item">
+            </form>
+            <div id="updateItemResult"></div>
+
+            <h2>Delete Item</h2>
+            <form id="deleteItemForm">
+                <label for="deleteItemId">Item ID:</label>
+                <input type="text" id="deleteItemId" name="deleteItemId" required><br>
+                <input type="submit" value="Delete Item">
+            </form>
+            <div id="deleteItemResult"></div>
+        </div>
+        
+        <div class="column">
+            <!-- STORE CRUD-->
+            <h2>Create Store</h2>
+            <form id="createStoreForm">
+                <label for="name">Store Name:</label>
+                <input type="text" id="name" name="name" required><br>
+                <label for="location">Location:</label>
+                <input type="text" id="location" name="location" required><br>
+                <label for="latitude">Latitude:</label>
+                <input type="text" id="latitude" name="latitude" required><br>
+                <label for="longitude">Longitude:</label>
+                <input type="text" id="longitude" name="longitude" required><br>
+                <input type="submit" value="Create Store">
+            </form>
+            <div id="createStoreResult"></div>
+
+            <h2>Read Store</h2>
+            <form id="readStoreForm">
+                <label for="readStoreId">Store ID:</label>
+                <input type="text" id="readStoreId" name="readStoreId" required><br>
+                <input type="submit" value="Read Store">
+            </form>
+            <div id="readStoreResult"></div>
+
+            <h2>Update Store</h2>
+            <form id="updateStoreForm">
+                <label for="updateStoreId">Store ID:</label>
+                <input type="text" id="updateStoreId" name="updateStoreId" required><br>
+                <label for="updateStoreName">Store Name:</label>
+                <input type="text" id="updateStoreName" name="updateStoreName"><br>
+                <label for="updateStoreLocation">Location:</label>
+                <input type="text" id="updateStoreLocation" name="updateStoreLocation"><br>
+                <label for="updateStoreLatitude">Latitude:</label>
+                <input type="text" id="updateStoreLatitude" name="updateStoreLatitude"><br>
+                <label for="updateStoreLongitude">Longitude:</label>
+                <input type="text" id="updateStoreLongitude" name="updateStoreLongitude"><br>
+                <input type="submit" value="Update Store">
+            </form>
+            <div id="updateStoreResult"></div>
+
+            <h2>Delete Store</h2>
+            <form id="deleteStoreForm">
+                <label for="deleteStoreId">Store ID:</label>
+                <input type="text" id="deleteStoreId" name="deleteStoreId" required><br>
+                <input type="submit" value="Delete Store">
+            </form>
+            <div id="deleteStoreResult"></div>
+        </div>
+    </div>
+    
+    <div class="center-column">
+        <!-- SHOPPING LIST CRUD -->
+        <h2>Create Shopping List</h2>
+        <form id="createShoppingListForm">
+            <label for="shoppingListUserId">User ID:</label>
+            <input type="text" id="shoppingListUserId" name="user_id" required><br>
+            <label for="shoppingListItems">Items (comma-separated):</label>
+            <input type="text" id="shoppingListItems" name="items" required><br>
+            <input type="submit" value="Create Shopping List">
+        </form>
+        <div id="createShoppingListResult"></div>
+
+        <h2>Read Shopping List</h2>
+        <form id="readShoppingListForm">
+            <label for="readShoppingListId">Shopping List ID:</label>
+            <input type="text" id="readShoppingListId" name="readShoppingListId" required><br>
+            <input type="submit" value="Read Shopping List">
+        </form>
+        <div id="readShoppingListResult"></div>
+
+        <h2>Update Shopping List</h2>
+        <form id="updateShoppingListForm">
+            <label for="updateShoppingListId">Shopping List ID:</label>
+            <input type="text" id="updateShoppingListId" name="updateShoppingListId" required><br>
+            <label for="updateShoppingListItems">Items (comma-separated):</label>
+            <input type="text" id="updateShoppingListItems" name="updateShoppingListItems" required><br>
+            <input type="submit" value="Update Shopping List">
+        </form>
+        <div id="updateShoppingListResult"></div>
+
+        <h2>Delete Shopping List</h2>
+        <form id="deleteShoppingListForm">
+            <label for="deleteShoppingListId">Shopping List ID:</label>
+            <input type="text" id="deleteShoppingListId" name="deleteShoppingListId" required><br>
+            <input type="submit" value="Delete Shopping List">
+        </form>
+        <div id="deleteShoppingListResult"></div>
+    </div>
+  
+</body>
+</html>
