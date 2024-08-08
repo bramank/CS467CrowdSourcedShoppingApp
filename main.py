@@ -1,12 +1,13 @@
 import datetime
 import hashlib
 import math
-from flask import Flask, render_template, request, jsonify
+import os
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from google.cloud import datastore
 
 datastore_client = datastore.Client()
-app = Flask(__name__)
-
+app = Flask(__name__, static_url_path='/static')
+app.secret_key = os.urandom(24)
 
 # DATASTORE FUNCTIONS
 def store_user(username, email, password_hash, reputation=0, role="User"):
@@ -35,17 +36,16 @@ def store_item(name, tags, brand):
     return entity.key.id
 
 
-def store_store(name, location_name, latitude, longitude):
+def store_store_info(name, location):
     entity = datastore.Entity(key=datastore_client.key("Store"))
     entity.update({
         "name": name,
-        "location_name": location_name,
-        "latitude": latitude,
-        "longitude": longitude,
+        "location": location,
         "timestamp": datetime.datetime.now(tz=datetime.timezone.utc)
     })
     datastore_client.put(entity)
     return entity.key.id
+
 
 
 def store_price(item_id, store_id, price, user_id, sale_status):
@@ -170,33 +170,13 @@ def get_user_rankings():
     rankings = [{"username": user["username"], "reputation": user["reputation"]} for user in result]
     return rankings
 
-
-def get_user_badges(user_id):
-    user = get_user_by_id(user_id)
-    if user:
-        reputation = user["reputation"]
-        if reputation >= 5000:
-            return "Master Shopper"
-        elif reputation >= 1000:
-            return "Gold Shopper"
-        elif reputation >= 500:
-            return "Silver Shopper"
-        elif reputation >= 100:
-            return "Bronze Shopper"
-        else:
-            return "None"
-    return None
-
-
 # ITEM FUNCTIONS
 def get_item_by_id(item_id):
-    key = datastore_client.key("Item", item_id)
+    key = datastore_client.key("Item", int(item_id))
     item = datastore_client.get(key)
     if item:
-        item["id"] = item.key.id
         return item
     return None
-
 
 def get_item_by_name(name):
     query = datastore_client.query(kind="Item")
@@ -255,10 +235,12 @@ def update_store_info(store_id, updated_data):
     store = datastore_client.get(key)
     if store:
         for k, value in updated_data.items():
-            store[k] = value
+            if k in ["name", "location"]:
+                store[k] = value
         datastore_client.put(store)
         return store
     return None
+
 
 
 def delete_store(store_id):
@@ -277,7 +259,7 @@ def get_shoppinglist_by_user(user_id):
     result = list(query.fetch())
     if result:
         shopping_list = result[0]
-        shopping_list["id"] = shopping_list.key.id_or_name
+        shopping_list["id"] = shopping_list.key.id
         return shopping_list
     return None
 
@@ -299,20 +281,7 @@ def delete_shoppinglist(user_id):
         return True
     return False
 
-
-def add_item_to_shoppinglist(user_id, item):
-    shopping_list = get_shoppinglist_by_user(user_id)
-    if shopping_list:
-        shopping_list = shopping_list[0]
-        if "items" not in shopping_list:
-            shopping_list["items"] = []
-        shopping_list["items"].append(item)
-        datastore_client.put(shopping_list)
-        return shopping_list
-    return None
-
-
-def remove_item_from_shoppinglist(user_id, item):
+def shoppinglist_remove_item(user_id, item):
     shopping_list = get_shoppinglist_by_user(user_id)
     if shopping_list:
         shopping_list = shopping_list[0]
@@ -532,20 +501,67 @@ def calculate_best_store(shopping_list, user_location):
 
 # API ENDPOINTS #
 
-# INDEX ENDPOINT
-@app.route('/')
+# HTML ENDPOINTS
+@app.route("/")
 def index():
-    return render_template('index.html')
+    if 'user_id' not in session:
+        return redirect(url_for('login_page'))
+    return render_template("index.html")
+
+@app.route("/login")
+def login_page():
+    return render_template("login.html")
+
+@app.route("/create_user")
+def create_user_page():
+    return render_template("create_user.html")
+
+@app.route("/create_item")
+def create_item_page():
+    return render_template("create_item.html")
+
+@app.route("/create_store")
+def create_store_page():
+    return render_template("create_store.html")
+
+@app.route("/create_shoppinglist")
+def create_shoppinglist_page():
+    return render_template("create_shoppinglist.html")
+
+@app.route("/recommendation")
+def recommendation_page():
+    return render_template("recommendation.html")
+
+@app.route('/stores')
+def render_stores_page():
+    return render_template('stores.html')
+
+@app.route("/shopping_list")
+def shopping_list_page():
+    return render_template("shopping_list.html")
+
+@app.route("/scan")
+def scan_page():
+    return render_template("scan.html")
+
+@app.route("/activity")
+def activity_page():
+    return render_template("activity.html")
+
+@app.route("/user")
+def user_page():
+    return render_template("user.html")
 
 
 # USER MANAGEMENT ENDPOINTS
-@app.route("/users", methods=["POST"])
-def create_user():
+@app.route("/create_user", methods=["POST"])
+def create_user_post():
     data = request.json
     username = data.get("username")
     email = data.get("email")
     password = data.get("password")
     role = data.get("role", "User")
+    reputation = data.get("reputation", 0)
     if not username or not email or not password:
         return jsonify({"error": "Missing required fields"}), 400
 
@@ -554,9 +570,8 @@ def create_user():
         return jsonify({"error": "User with this email already exists"}), 400
 
     password_hash = hash_password(password)
-    user_id = store_user(username, email, password_hash, role=role)
+    user_id = store_user(username, email, password_hash, reputation=reputation, role=role)
     return jsonify({"message": "User created successfully", "user_id": user_id}), 201
-
 
 @app.route("/users/<int:user_id>", methods=["GET"])
 def read_user(user_id):
@@ -574,15 +589,6 @@ def read_user(user_id):
     return jsonify({"error": "User not found"}), 404
 
 
-@app.route("/users/<int:user_id>", methods=["PUT"])
-def update_user(user_id):
-    data = request.json
-    updated_user = update_user_info(user_id, data)
-    if updated_user:
-        return jsonify({"message": "User updated successfully"}), 200
-    return jsonify({"error": "User not found"}), 404
-
-
 @app.route("/users/<int:user_id>", methods=["DELETE"])
 def delete_user_endpoint(user_id):
     if delete_user(user_id):
@@ -596,12 +602,22 @@ def login():
     data = request.json
     email = data.get("email")
     password = data.get("password")
+
     if not email or not password:
         return jsonify({"error": "Missing required fields"}), 400
+
     user = get_user_by_email(email)
     if user and user["password_hash"] == hash_password(password):
+        session['user_id'] = user['id']
         return jsonify({"message": "Login successful"}), 200
+
     return jsonify({"error": "Invalid email or password"}), 401
+
+@app.route("/logout", methods=["GET"])
+def logout():
+    session.clear()
+    return redirect(url_for('login_page'))
+
 
 
 # REPUTATION & RANKING ENDPOINTS
@@ -675,21 +691,19 @@ def delete_item_endpoint(item_id):
 
 
 # STORE MANAGEMENT ENDPOINTS
-@app.route("/stores", methods=["POST"])
+@app.route('/api/stores', methods=['POST'])
 def create_store():
     data = request.json
     name = data.get("name")
     location = data.get("location")
-    latitude = data.get("latitude")
-    longitude = data.get("longitude")
-    if not name or not location or latitude is None or longitude is None:
+    if not name or not location:
         return jsonify({"error": "Missing required fields"}), 400
 
     existing_store = get_store_by_name(name)
     if existing_store:
         return jsonify({"error": "Store with this name already exists"}), 400
 
-    store_id = store_store(name, location, latitude, longitude)
+    store_id = store_store_info(name, location)
     return jsonify({"message": "Store created successfully", "store_id": store_id}), 201
 
 
@@ -769,35 +783,43 @@ def delete_shoppinglist_endpoint(shopping_list_id):
     return jsonify({"error": "Shopping list not found"}), 404
 
 
-@app.route("/shoppinglist/<int:shopping_list_id>/add", methods=["POST"])
-def add_item_to_shoppinglist_endpoint(shopping_list_id):
+@app.route("/api/shoppinglist", methods=["POST"])
+def add_item_to_shoppinglist():
     data = request.json
-    item = data.get("item")
-    if not item:
-        return jsonify({"error": "Missing item"}), 400
-    shopping_list = datastore_client.get(datastore_client.key("ShoppingList", shopping_list_id))
-    if shopping_list:
+    user_id = data.get("user_id")
+    item_id = data.get("item_id")
+
+    app.logger.info(f"Received add item request: user_id={user_id}, item_id={item_id}")
+
+    if not user_id or not item_id:
+        return jsonify({"error": "Missing user_id or item_id"}), 400
+
+    query = datastore_client.query(kind="ShoppingList")
+    query.add_filter("user_id", "=", int(user_id))
+    result = list(query.fetch())
+
+    if result:
+        shopping_list = result[0]
+        app.logger.info(f"Shopping list found for user {user_id}: {shopping_list}")
         if "items" not in shopping_list:
             shopping_list["items"] = []
-        shopping_list["items"].append(item)
-        datastore_client.put(shopping_list)
-        return jsonify({"message": "Item added to shopping list successfully"}), 200
-    return jsonify({"error": "Shopping list not found"}), 404
-
-
-@app.route("/shoppinglist/<int:shopping_list_id>/remove", methods=["POST"])
-def remove_item_from_shoppinglist_endpoint(shopping_list_id):
-    data = request.json
-    item = data.get("item")
-    if not item:
-        return jsonify({"error": "Missing item"}), 400
-    shopping_list = datastore_client.get(datastore_client.key("ShoppingList", shopping_list_id))
-    if shopping_list:
-        if "items" in shopping_list and item in shopping_list["items"]:
-            shopping_list["items"].remove(item)
+        if int(item_id) not in shopping_list["items"]:
+            shopping_list["items"].append(int(item_id))
             datastore_client.put(shopping_list)
-            return jsonify({"message": "Item removed from shopping list successfully"}), 200
-    return jsonify({"error": "Shopping list not found"}), 404
+            app.logger.info(f"Item {item_id} added to shopping list.")
+            return jsonify({"message": "Item added to shopping list"}), 200
+        else:
+            return jsonify({"error": "Item already in shopping list"}), 400
+    else:
+        new_shopping_list = datastore.Entity(key=datastore_client.key("ShoppingList"))
+        new_shopping_list.update({
+            "user_id": int(user_id),
+            "items": [int(item_id)],
+            "timestamp": datetime.datetime.now(tz=datetime.timezone.utc)
+        })
+        datastore_client.put(new_shopping_list)
+        app.logger.info(f"New shopping list created for user {user_id} with item {item_id}.")
+        return jsonify({"message": "Item added to new shopping list"}), 200
 
 
 # PRICE MANAGEMENT ENDPOINTS
@@ -1003,6 +1025,255 @@ def recommend_store():
         "timestamp": best_store["timestamp"].isoformat()
     }
     return jsonify(store_info), 200
+
+# STORE LOCATION ENDPOINT
+@app.route("/stores_nearby")
+def stores_nearby():
+    radius = float(request.args.get('radius'))
+    latitude = float(request.args.get('latitude'))
+    longitude = float(request.args.get('longitude'))
+    user_location = (latitude, longitude)
+
+    stores = get_nearby_stores(user_location, radius)
+    return jsonify(stores)
+
+# DATASTORE FETCHING ENDPOINTS
+@app.route("/api/stores", methods=["GET"])
+def get_stores():
+    query = datastore_client.query(kind="Store")
+    stores = list(query.fetch())
+    store_list = []
+    for store in stores:
+        store_data = {
+            "id": store.key.id,  
+            "name": store["name"],
+            "location": store["location"]
+        }
+        store_list.append(store_data)
+    return jsonify(store_list)
+
+
+@app.route("/api/store/<int:store_id>/items", methods=["GET"])
+def get_items_by_store(store_id):
+    query = datastore_client.query(kind="Price")
+    query.add_filter("store_id", "=", store_id)
+    prices = list(query.fetch())
+    item_ids = {price["item_id"] for price in prices}
+    items = []
+    for item_id in item_ids:
+        item = get_item_by_id(item_id)
+        if item:
+            item_info = item.copy()
+            item_price_info = next(price for price in prices if price["item_id"] == item_id)
+            item_info["price"] = item_price_info["price"]
+            item_info["sale_status"] = item_price_info["sale_status"]
+            items.append(item_info)
+    
+    return jsonify(items)
+
+@app.route("/api/item/<int:item_id>", methods=["GET"])
+def get_item(item_id):
+    item = get_item_by_id(item_id)
+    if item:
+        return jsonify(item)
+    return jsonify({"error": "Item not found"}), 404
+
+@app.route("/api/current_user", methods=["GET"])
+def get_current_user():
+    user_id = session.get('user_id')
+    if user_id:
+        return jsonify({"user_id": user_id})
+    return jsonify({"error": "User not logged in"}), 401
+
+@app.route("/api/shoppinglist", methods=["POST"])
+def create_or_update_shoppinglist():
+    data = request.json
+    user_id = data.get("user_id")
+    item_id = data.get("item_id")
+    
+    if not user_id or not item_id:
+        return jsonify({"error": "Missing user_id or item_id"}), 400
+    
+    shopping_list = get_shoppinglist_by_user(user_id)
+    
+    if shopping_list:
+        shopping_list = shopping_list
+        if "items" not in shopping_list:
+            shopping_list["items"] = []
+        shopping_list["items"].append(item_id)
+        datastore_client.put(shopping_list)
+    else:
+        shopping_list_id = store_shoppinglist(user_id, [item_id])
+    
+    return jsonify({"message": "Shopping list updated successfully"}), 200
+
+@app.route("/api/shoppinglist/<int:user_id>", methods=["GET"])
+def get_shoppinglist(user_id):
+    query = datastore_client.query(kind="ShoppingList")
+    query.add_filter("user_id", "=", user_id)
+    result = list(query.fetch())
+    if result:
+        shopping_list = result[0]
+        items = []
+        for item_id in shopping_list["items"]:
+            item = get_item_by_id(item_id)
+            if item:
+                price_info = get_price_info_by_item_id(item_id)  
+                item_data = {
+                    "id": item.key.id,
+                    "name": item["name"],
+                    "brand": item["brand"],
+                    "price": price_info["price"] if price_info else "N/A",
+                    "sale_status": price_info["sale_status"] if price_info else "N/A"
+                }
+                items.append(item_data)
+            else:
+                app.logger.info(f"Item with ID {item_id} not found in datastore.")
+        return jsonify(items), 200
+    return jsonify({"error": "Shopping list not found"}), 404
+
+
+def get_price_info_by_item_id(item_id):
+    app.logger.info(f"Fetching price info for item_id: {item_id}")
+    query = datastore_client.query(kind="Price")
+    query.add_filter("item_id", "=", int(item_id))
+    result = list(query.fetch())
+    if result:
+        app.logger.info(f"Price info found for item_id {item_id}: {result[0]}")
+        return result[0]
+    else:
+        app.logger.info(f"No price info found for item_id {item_id}")
+    
+    return None
+
+
+@app.route("/api/shoppinglist/<int:user_id>/remove/<item_id>", methods=["DELETE"])
+def remove_item_from_shoppinglist(user_id, item_id):
+    query = datastore_client.query(kind="ShoppingList")
+    query.add_filter("user_id", "=", int(user_id))
+    result = list(query.fetch())
+    if result:
+        shopping_list = result[0]
+        app.logger.info(f"Shopping list found: {shopping_list}")
+        
+        if "items" in shopping_list and item_id in shopping_list["items"]:
+            shopping_list["items"].remove(item_id)
+            datastore_client.put(shopping_list)
+            return jsonify({"message": "Item removed from shopping list"}), 200
+    return jsonify({"error": "Item or shopping list not found"}), 404
+
+# ITEM SCANNING ENDPOINTS AND FUNCTIONS:
+@app.route("/api/scan", methods=["POST"])
+def scan_item():
+    data = request.json
+    barcode = data.get("barcode")
+    price = data.get("price")
+    sale_status = data.get("sale_status")
+    tags = data.get("tags")
+    user_id = data.get("user_id")
+
+    if not barcode or not price or user_id is None:
+        return jsonify({"error": "Missing required fields"}), 400
+    item = get_item_by_barcode(barcode)
+    if item:
+        item_id = item.key.id
+    else:
+        item_id = store_item_info(barcode, tags, "")
+    
+    store_price_info(item_id, user_id, price, sale_status)
+    for tag in tags:
+        store_tag_info(tag)
+        assign_tag_to_item(item_id, tag)
+
+    return jsonify({"message": "Item scanned and stored successfully"}), 201
+
+def get_item_by_barcode(barcode):
+    query = datastore_client.query(kind="Item")
+    query.add_filter("barcode", "=", barcode)
+    result = list(query.fetch())
+    if result:
+        return result[0]
+    return None
+
+def store_item_info(barcode, tags, brand):
+    entity = datastore.Entity(key=datastore_client.key("Item"))
+    entity.update({
+        "barcode": barcode,
+        "tags": tags,
+        "brand": brand,
+        "timestamp": datetime.datetime.now(tz=datetime.timezone.utc)
+    })
+    datastore_client.put(entity)
+    return entity.key.id
+
+def store_price_info(item_id, user_id, price, sale_status):
+    entity = datastore.Entity(key=datastore_client.key("Price"))
+    entity.update({
+        "item_id": item_id,
+        "user_id": user_id,
+        "price": price,
+        "sale_status": sale_status,
+        "timestamp": datetime.datetime.now(tz=datetime.timezone.utc)
+    })
+    datastore_client.put(entity)
+    return entity.key.id
+
+def store_tag_info(name):
+    entity = datastore.Entity(key=datastore_client.key("Tag"))
+    entity.update({
+        "name": name,
+        "timestamp": datetime.datetime.now(tz=datetime.timezone.utc)
+    })
+    datastore_client.put(entity)
+    return entity.key.id
+
+def assign_tag_to_item(item_id, tag_name):
+    item = get_item_by_id(item_id)
+    if item:
+        if "tags" not in item:
+            item["tags"] = []
+        item["tags"].append(tag_name)
+        datastore_client.put(item)
+        return item
+    return None 
+
+# USER PAGE ENDPOINTS:
+def get_user_badges(user_id):
+    user = get_user_by_id(user_id)
+    if user:
+        reputation = user["reputation"]
+        if reputation >= 5000:
+            return "Master Shopper"
+        elif reputation >= 1000:
+            return "Gold Shopper"
+        elif reputation >= 500:
+            return "Silver Shopper"
+        elif reputation >= 100:
+            return "Bronze Shopper"
+        else:
+            return "None"
+    return None
+
+@app.route("/api/users/<int:user_id>", methods=["GET"])
+def get_user(user_id):
+    user = get_user_by_id(user_id)
+    if user:
+        badge = get_user_badges(user_id)
+        user_info = {
+            "email": user["email"],
+            "reputation": user["reputation"],
+            "badge": badge
+        }
+        return jsonify(user_info), 200
+    return jsonify({"error": "User not found"}), 404
+
+@app.route("/api/activitylogs/user/<int:user_id>", methods=["GET"])
+def get_activity_logs(user_id):
+    logs = get_activitylog_by_user(user_id)
+    if logs:
+        activities = [{"details": log["details"]} for log in logs]
+        return jsonify({"activities": activities}), 200
+    return jsonify({"error": "No activity logs found for this user"}), 404
 
 
 if __name__ == "__main__":
