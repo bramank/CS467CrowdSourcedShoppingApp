@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Info</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='user_styles.css') }}">
+</head>
+<body>
+    {% include 'base.html' %}
+    <h1>User Info</h1>
+    <div id="userInfo">
+        <p>Email: <span id="email"></span></p>
+        <p>Reputation: <span id="reputation"></span></p>
+        <p>Badge: <span id="badge"></span></p>
+    </div>
+    <h2>Activity Log</h2>
+    <div id="activityLog">
+    </div>
+    <h2>Change Password</h2>
+    <form id="changePasswordForm">
+        <label for="oldPassword">Old Password:</label>
+        <input type="password" id="oldPassword" name="oldPassword" required><br>
+        <label for="newPassword">New Password:</label>
+        <input type="password" id="newPassword" name="newPassword" required><br>
+        <input type="submit" value="Change Password">
+    </form>
+    <div id="passwordChangeResult"></div>
+    <script src="{{ url_for('static', filename='user.js') }}"></script>
+</body>
+</html>

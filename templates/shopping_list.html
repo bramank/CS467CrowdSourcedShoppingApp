@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Shopping List</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='shopping_list_styles.css') }}">
+    <script src="{{ url_for('static', filename='shopping_list.js') }}"></script>
+</head>
+<body>
+    {% extends "base.html" %}
+    {% block content %}
+    <h1>Manage Shopping List</h1>
+
+    <div class="container">
+        <div class="flexbox-container">
+            <div class="flexbox-item">
+                <h2>Your Shopping List</h2>
+                <div id="shoppingList">
+                </div>
+            </div>
+            <div class="flexbox-item">
+                <h2>Item Details</h2>
+                <div id="itemDetails">
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endblock %}
+</body>
+</html>

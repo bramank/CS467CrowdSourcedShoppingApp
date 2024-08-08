@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Scan Items</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='scan_styles.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+    <script src="{{ url_for('static', filename='scan.js') }}"></script>
+</head>
+<body>
+    {% include 'base.html' %}
+    <div class="container">
+        <h1>Scan Items</h1>
+        <div id="scanner-container"></div>
+        <form id="scanForm">
+            <label for="barcode">Barcode:</label>
+            <input type="text" id="barcode" name="barcode" required><br>
+            <label for="price">Price:</label>
+            <input type="number" id="price" name="price" step="0.01" required><br>
+            <label for="sale_status">On Sale:</label>
+            <input type="checkbox" id="sale_status" name="sale_status"><br>
+            <label for="tags">Tags (comma-separated):</label>
+            <input type="text" id="tags" name="tags"><br>
+            <input type="submit" value="Submit">
+        </form>
+        <div id="scanResult"></div>
+    </div>
+</body>
+</html>

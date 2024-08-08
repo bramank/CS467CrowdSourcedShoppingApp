@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+  <title>{% block title %}CS467 - Crowd-Sourced Shopping App{% endblock %}</title>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <div class="navbar">
+    <a href="{{ url_for('render_stores_page') }}">View Stores</a>
+    <a href="{{ url_for('shopping_list_page') }}">View Shopping List</a>
+    <a href="{{ url_for('scan_page') }}">Scan Item</a>
+    <a href="{{ url_for('user_page') }}">User Info</a>
+    <a href="{{ url_for('logout') }}">Logout</a>
+  </div>
+
+  {% block content %}
+  {% endblock %}
+
+</body>
+</html>

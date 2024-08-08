@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Stores</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='stores_styles.css') }}">
+    <script src="{{ url_for('static', filename='stores.js') }}"></script>
+</head>
+<body>
+    {% extends "base.html" %}
+    {% block content %}
+    <h1>Manage Stores</h1>
+
+    <div class="container">
+        <div class="flexbox-container">
+            <div class="flexbox-item store-list-container">
+                <button id="loadStoresButton" class="btn-primary">Load All Stores</button>
+                <div id="storeList">
+                </div>
+            </div>
+            <div class="flexbox-item item-list-container">
+                <h2>Items in Store</h2>
+                <div id="itemList">
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endblock %}
+</body>
+</html>
